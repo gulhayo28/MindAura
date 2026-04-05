@@ -13,8 +13,11 @@ async function apiDownload(resource) {
   const token = getToken();
   if (!token) throw new Error("Yuklab olish uchun tizimga kiring");
 
-  // ✅ To'g'ri encode qilish
-  const fileUrl = `https://PSCHOLOGY.b-cdn.net/documents/${encodeURIComponent(resource.file_path)}`;
+  // file_path dan faqat fayl nomini olish (documents/ ni olib tashlash)
+  const fileName = resource.file_path.replace("documents/", "");
+  const fileUrl = `https://PSCHOLOGY.b-cdn.net/documents/${encodeURIComponent(fileName)}`;
+  
+  console.log("URL:", fileUrl); // tekshirish uchun
   
   const a = document.createElement("a");
   a.href = fileUrl;
