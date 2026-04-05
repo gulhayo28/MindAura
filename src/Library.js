@@ -1,26 +1,26 @@
 // src/Library.js
+
+// src/Library.js
 import { useState, useEffect, useCallback } from "react";
 import "./Library.css";
 
+const CDN = "https://PSCHOLOGY.b-cdn.net";
 const BASE_URL = "http://127.0.0.1:8000";
 
 function getToken() { return localStorage.getItem("access_token"); }
 
-async function apiDownload(id, title) {
+async function apiDownload(resource) {
   const token = getToken();
   if (!token) throw new Error("Yuklab olish uchun tizimga kiring");
-  const res = await fetch(`${BASE_URL}/resources/${id}/download`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || "Yuklab olishda xatolik");
-  }
-  const blob = await res.blob();
-  const url = window.URL.createObjectURL(blob);
+
+  // ✅ To'g'ri encode qilish
+  const fileUrl = `https://PSCHOLOGY.b-cdn.net/documents/${encodeURIComponent(resource.file_path)}`;
+  
   const a = document.createElement("a");
-  a.href = url; a.download = `${title}.pdf`; a.click();
-  window.URL.revokeObjectURL(url);
+  a.href = fileUrl;
+  a.download = `${resource.title}.pdf`;
+  a.target = "_blank";
+  a.click();
 }
 
 async function apiFetch(params = {}) {
@@ -99,7 +99,7 @@ export default function Library() {
 
   async function handleDownload(resource) {
     setDownloading(resource.id);
-    try { await apiDownload(resource.id, resource.title); }
+    try { await apiDownload(resource); }  // resource ni to'liq beramiz
     catch (err) { alert(err.message); }
     finally { setDownloading(null); }
   }
@@ -273,7 +273,7 @@ function ResourceCard({ resource, onDownload, isDownloading }) {
       {/* Muqova */}
       <div className="lib-card-cover">
         {resource.cover_image
-          ? <img src={`${BASE_URL}${resource.cover_image}`} alt={resource.title} />
+          ? <img src={`${CDN}/covers/${resource.cover_image}`} alt={resource.title} />
           : <span className="lib-card-cover-icon">{typeIcon}</span>
         }
         {resource.is_featured && (
