@@ -195,10 +195,13 @@ function Dashboard({ token }) {
 
 // ─── USERS ───────────────────────────────────────────
 function Users({ token }) {
-  const [search, setSearch]   = useState("");
-  const [filter, setFilter]   = useState("barchasi");
-  const [users, setUsers]     = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [search, setSearch]     = useState("");
+  const [filter, setFilter]     = useState("barchasi");
+  const [users, setUsers]       = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [selected, setSelected] = useState(null);
+  const [detail, setDetail]     = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -208,82 +211,174 @@ function Users({ token }) {
     const data = await adminFetch(`/admin/users?${params}`, token);
     if (data) setUsers(data.map(u => ({
       ...u,
+      name: u.full_name || u.username,
       status: u.is_active ? "faol" : "bloklangan",
-      tests: u.challenges_count,
-      joined: new Date(u.created_at).toLocaleDateString("uz-UZ"),
-      lastActive: "—",
+      joined: new Date(u.created_at).toLocaleDateString("uz-UZ", { day:"numeric", month:"short", year:"numeric" }),
     })));
     setLoading(false);
   }, [search, filter, token]);
 
   useEffect(() => { loadUsers(); }, [loadUsers]);
 
-  const filtered = users.filter(u => {
-    const matchS = u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
-    const matchF = filter==="barchasi" || u.status===filter;
-    return matchS && matchF;
-  });
+  const openDetail = async (u) => {
+    setSelected(u);
+    setDetailLoading(true);
+    const data = await adminFetch(`/admin/users/${u.id}/detail`, token);
+    setDetail(data);
+    setDetailLoading(false);
+  };
 
   const toggleBlock = async (id) => {
     await adminFetch(`/admin/users/${id}/block`, token, { method: "PATCH" });
     loadUsers();
+    if (selected?.id === id) setSelected(null);
+  };
+
+  const deleteUser = async (id) => {
+    if (!window.confirm("Haqiqatan o'chirasizmi?")) return;
+    await adminFetch(`/admin/users/${id}`, token, { method: "DELETE" });
+    loadUsers();
+    setSelected(null);
   };
 
   return (
-    <div>
-      <div className="adm-toolbar">
-        <div style={{display:"flex",gap:8}}>
-          <input className="adm-input" placeholder="Qidirish..." value={search} onChange={e=>setSearch(e.target.value)}/>
-          <select className="adm-select" value={filter} onChange={e=>setFilter(e.target.value)}>
-            <option value="barchasi">Barchasi</option>
-            <option value="faol">Faol</option>
-            <option value="bloklangan">Bloklangan</option>
-          </select>
+    <div style={{ display: "grid", gridTemplateColumns: selected ? "1.2fr 1fr" : "1fr", gap: 14 }}>
+      {/* ── Ro'yxat ── */}
+      <div>
+        <div className="adm-toolbar">
+          <div style={{ display: "flex", gap: 8 }}>
+            <input className="adm-input" placeholder="Qidirish..." value={search} onChange={e => setSearch(e.target.value)} />
+            <select className="adm-select" value={filter} onChange={e => setFilter(e.target.value)}>
+              <option value="barchasi">Barchasi</option>
+              <option value="faol">Faol</option>
+              <option value="bloklangan">Bloklangan</option>
+            </select>
+          </div>
+          <div style={{ fontSize: 13, color: "#9ca3af" }}>{users.length} ta foydalanuvchi</div>
         </div>
-        <div style={{fontSize:13,color:"#9ca3af"}}>{filtered.length} ta foydalanuvchi</div>
+
+        <div className="adm-card" style={{ padding: 0, overflow: "hidden" }}>
+          {loading ? (
+            <div style={{ padding: 24, textAlign: "center", color: "#9ca3af" }}>Yuklanmoqda...</div>
+          ) : (
+            <table className="adm-table">
+              <thead>
+                <tr>
+                  <th>Foydalanuvchi</th>
+                  <th>Holat</th>
+                  <th>Daraja</th>
+                  <th>Ro'yxatdan</th>
+                  <th>Amallar</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map(u => (
+                  <tr key={u.id} style={{ cursor: "pointer", background: selected?.id === u.id ? "#f5f4fc" : "" }}
+                    onClick={() => openDetail(u)}>
+                    <td>
+                      <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                        <AvaComp name={u.name} size={30} />
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 500 }}>{u.name}</div>
+                          <div style={{ fontSize: 11, color: "#9ca3af" }}>{u.email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><Badge text={u.status === "faol" ? "Faol" : "Bloklangan"} type={u.status === "faol" ? "success" : "danger"} /></td>
+                    <td style={{ fontSize: 13 }}>⭐ {u.level}-daraja</td>
+                    <td style={{ fontSize: 12, color: "#9ca3af" }}>{u.joined}</td>
+                    <td onClick={e => e.stopPropagation()}>
+                      <div style={{ display: "flex", gap: 5 }}>
+                        <button className="adm-btn-sm"
+                          style={{ background: u.status === "faol" ? "#fee2e2" : "#e6f8f0", color: u.status === "faol" ? "#b91c1c" : "#0d7a50" }}
+                          onClick={() => toggleBlock(u.id)}>
+                          {u.status === "faol" ? "Blok" : "Ochish"}
+                        </button>
+                        <button className="adm-btn-sm" style={{ background: "#fee2e2", color: "#b91c1c" }}
+                          onClick={() => deleteUser(u.id)}>
+                          O'chir
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
-      <div className="adm-card" style={{padding:0,overflow:"hidden"}}>
-        <table className="adm-table">
-          <thead>
-            <tr>
-              <th>Foydalanuvchi</th>
-              <th>Holat</th>
-              <th>Testlar</th>
-              <th>Ro'yxatdan</th>
-              <th>Oxirgi faollik</th>
-              <th>Amallar</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map(u => (
-              <tr key={u.id}>
-                <td>
-                  <div style={{display:"flex",alignItems:"center",gap:9}}>
-                    <AvaComp name={u.name} size={30}/>
-                    <div>
-                      <div style={{fontSize:13,fontWeight:500}}>{u.name}</div>
-                      <div style={{fontSize:11,color:"#9ca3af"}}>{u.email}</div>
+
+      {/* ── Detail panel ── */}
+      {selected && (
+        <div className="adm-card" style={{ position: "sticky", top: 0, maxHeight: "85vh", overflowY: "auto" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>Batafsil</div>
+            <button onClick={() => setSelected(null)}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", fontSize: 18 }}>✕</button>
+          </div>
+
+          {detailLoading ? (
+            <div style={{ textAlign: "center", color: "#9ca3af", padding: 24 }}>Yuklanmoqda...</div>
+          ) : detail ? (
+            <>
+              {/* Avatar + info */}
+              <div style={{ textAlign: "center", marginBottom: 16 }}>
+                <AvaComp name={selected.name} size={56} />
+                <div style={{ marginTop: 8, fontSize: 15, fontWeight: 600 }}>{detail.full_name || detail.username}</div>
+                <div style={{ fontSize: 12, color: "#9ca3af" }}>@{detail.username}</div>
+                <div style={{ fontSize: 12, color: "#9ca3af" }}>{detail.email}</div>
+              </div>
+
+              {/* Stats */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
+                {[
+                  { label: "Daraja", val: `⭐ ${detail.level}` },
+                  { label: "Ball", val: detail.total_points },
+                  { label: "Bajarilgan kunlar", val: detail.days_completed },
+                  { label: "Challengelar", val: `${detail.challenges_completed}/${detail.challenges_total}` },
+                ].map((s, i) => (
+                  <div key={i} style={{ background: "#f5f4fc", borderRadius: 8, padding: "8px 12px", textAlign: "center" }}>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: "#6C5CE7" }}>{s.val}</div>
+                    <div style={{ fontSize: 11, color: "#9ca3af" }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Test natijalari */}
+              <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Test natijalari</div>
+              {detail.test_results?.length === 0 ? (
+                <div style={{ fontSize: 12, color: "#9ca3af", textAlign: "center", padding: 12 }}>Hali test o'tilmagan</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {detail.test_results?.map((t, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 10px", background: "#f5f4fc", borderRadius: 8 }}>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 500 }}>{t.test_name}</div>
+                        <div style={{ fontSize: 11, color: "#9ca3af" }}>
+                          {new Date(t.created_at).toLocaleDateString("uz-UZ", { day: "numeric", month: "short" })}
+                        </div>
+                      </div>
+                      <Badge text={t.result_label} type="default" />
                     </div>
-                  </div>
-                </td>
-                <td><Badge text={u.status==="faol"?"Faol":"Bloklangan"} type={u.status==="faol"?"success":"danger"}/></td>
-                <td style={{fontSize:13,color:"#6b7280"}}>{u.tests} ta</td>
-                <td style={{fontSize:12,color:"#9ca3af"}}>{u.joined}</td>
-                <td style={{fontSize:12,color:"#9ca3af"}}>{u.lastActive}</td>
-                <td>
-                  <div style={{display:"flex",gap:5}}>
-                    <button className="adm-btn-sm" style={{background:"#f5f4fc",color:"#6C5CE7"}}>Ko'rish</button>
-                    <button className="adm-btn-sm" onClick={()=>toggleBlock(u.id)}
-                      style={{background: u.status==="faol"?"#fee2e2":"#e6f8f0", color: u.status==="faol"?"#b91c1c":"#0d7a50"}}>
-                      {u.status==="faol"?"Blok":"Ochish"}
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Amallar */}
+              <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+                <button className="adm-btn" style={{ flex: 1, background: detail.is_active ? "#fee2e2" : "#e6f8f0", color: detail.is_active ? "#b91c1c" : "#0d7a50" }}
+                  onClick={() => toggleBlock(detail.id)}>
+                  {detail.is_active ? "🚫 Bloklash" : "✅ Ochish"}
+                </button>
+                <button className="adm-btn" style={{ flex: 1, background: "#fee2e2", color: "#b91c1c" }}
+                  onClick={() => deleteUser(detail.id)}>
+                  🗑 O'chirish
+                </button>
+              </div>
+            </>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }
