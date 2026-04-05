@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import "./Admin.css";
 
-const API = "http://localhost:8000";
+const API = "https://mindaura-backend-4.onrender.com";
 
 async function adminFetch(path, token, opts = {}) {
   try {
