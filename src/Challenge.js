@@ -6,6 +6,28 @@ import {
   Flame, Star, ChevronRight, CheckCircle,
   Calendar, Users, Plus, X, TrendingUp
 } from "lucide-react";
+const BACKEND = "https://mindaura-backend-4.onrender.com";
+
+async function saveChallengeProgress(challengeId, challengeTitle, dayNumber) {
+  const token = localStorage.getItem("access_token");
+  if (!token) return;
+  try {
+    await fetch(`${BACKEND}/challenge-progress/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        challenge_id: String(challengeId),
+        challenge_title: challengeTitle,
+        day_number: dayNumber,
+      })
+    });
+  } catch (e) {
+    console.log("Saqlashda xato:", e);
+  }
+}
 
 const CH_ICONS = {
   1: <Ban size={28} strokeWidth={1.5} />,
@@ -314,9 +336,18 @@ export default function Challenge() {
   const [progress, setProgress]     = useState({});
   const [showCreate, setShowCreate] = useState(false);
 
-  const handleJoin = (id) => { setJoined(p=>({...p,[id]:true})); setProgress(p=>({...p,[id]:1})); };
-  const handleDay  = (cId,day) => setProgress(p=>({...p,[cId]:Math.max(p[cId]||1,day+1)}));
-
+  const handleJoin = (id) => {
+    const ch = ALL_CHALLENGES.find(c => c.id === id);
+    setJoined(p => ({...p, [id]: true}));
+    setProgress(p => ({...p, [id]: 1}));
+    saveChallengeProgress(id, ch.title, 0);
+  };
+  const handleDay = (cId, day) => {
+    const ch = ALL_CHALLENGES.find(c => c.id === cId);
+    setProgress(p => ({...p, [cId]: Math.max(p[cId] || 1, day + 1)}));
+    saveChallengeProgress(cId, ch.title, day);
+  };
+  
   if (selected) return (
     <ChallengeDetail ch={selected} onBack={()=>setSelected(null)}
       joined={joined} onJoin={handleJoin}
