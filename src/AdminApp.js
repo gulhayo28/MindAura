@@ -671,28 +671,30 @@ function AdminLogin({ onLogin }) {
     e.preventDefault();
     setError("");
     setLoading(true);
-      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-        try {
-            const res = await fetch("https://mindaura-backend-4.onrender.com/auth/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password })
-          });
-          if (res.ok) {
-            const data = await res.json();
-            sessionStorage.setItem("adm_token", data.access_token);
-          } else {
-            sessionStorage.setItem("adm_token", "mock_token");
-          }
-        } catch(e) {
-          sessionStorage.setItem("adm_token", "mock_token");
-        }
+  
+    try {
+      const res = await fetch("https://mindaura-backend-4.onrender.com/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+  
+      if (res.ok) {
+        const data = await res.json();
+        // ✅ Tokenni to'g'ri saqlash
+        sessionStorage.setItem("adm_token", data.access_token);
+        sessionStorage.setItem("adm_auth", "1");
         setLoading(false);
         onLogin();
       } else {
+        // Login muvaffaqiyatsiz
         setError("Email yoki parol noto'g'ri");
         setLoading(false);
       }
+    } catch (e) {
+      setError("Server bilan bog'lanib bo'lmadi");
+      setLoading(false);
+    }
   };
 
   return (
