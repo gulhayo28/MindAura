@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import SzondiTest from "./SzondiTest";
 import "./Tests.css";
 import { RorschachTest, Big5Test, EnneagramTest, EmpathyTest, NarcissismTest, DarkTriadTest, AttachmentTest, ChildhoodTraumaTest } from "./ExtraTests";
@@ -11,6 +11,31 @@ import {
   ParentTeenTest, MuloqotTest, OzOziniTest, 
   RavenTest, KettelTest, YolgonTest 
 } from "./ExtraTests";
+
+const BACKEND = "https://mindaura-backend-4.onrender.com";
+
+async function saveTestResult(testId, testName, score, resultLabel, resultDesc) {
+  const token = localStorage.getItem("access_token");
+  if (!token) return;
+  try {
+    await fetch(`${BACKEND}/test-results/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        test_id: testId,
+        test_name: testName,
+        score: score,
+        result_label: resultLabel,
+        result_desc: resultDesc,
+      })
+    });
+  } catch (e) {
+    console.log("Saqlashda xato:", e);
+  }
+}
 
 
 const TEST_ICONS = {
@@ -91,7 +116,16 @@ function LuscherTest({ onBack }) {
     } else { setSelections(newSel); setAvailable(newAvail); }
   };
 
-  if (result) return <Result result={result} onRetry={() => { setRound(1); setSelections([]); setAvailable([...LUSCHER_COLORS]); setResult(null); }} onBack={onBack} />;
+  if (result) return (
+    <Result 
+      result={result} 
+      testId="luscher"
+      testName="Lyusher Rang Testi"
+      score={0}
+      onRetry={() => { setRound(1); setSelections([]); setAvailable([...LUSCHER_COLORS]); setResult(null); }} 
+      onBack={onBack} 
+    />
+  );
 
   return (
     <div className="luscher-test">
@@ -162,6 +196,12 @@ function TemperamentTest({ onBack }) {
   const [current, setCurrent] = useState(0);
   const [counts, setCounts] = useState({ A: 0, B: 0, V: 0, G: 0 });
   const [result, setResult] = useState(null);
+
+  useEffect(() => {
+    if (result) {
+      saveTestResult("temperament", "Temperament Testi", result.percents[result.main], result.type, result.desc);
+    }
+  }, [result]);
 
   const handleAnswer = (key) => {
     const newCounts = { ...counts, [key]: counts[key] + 1 };
@@ -263,19 +303,16 @@ function DepressionTest({ onBack }) {
   };
 
   if (result) return (
-    <div className="test-result">
-      <div className="result-emoji">{result.emoji}</div>
-      <div className="result-score-circle" style={{ borderColor: result.color, color: result.color }}>{result.score}<span>/27</span></div>
-      <div className="result-level" style={{ background: result.color + "22", color: result.color }}>{result.level}</div>
-      <h2>{result.state}</h2>
-      <p className="result-desc">{result.desc}</p>
-      <div className="result-advice"><h3>💡 Tavsiyalar</h3>
-        {result.advice.map((a, i) => <div key={i} className="advice-item"><span className="advice-num">{i + 1}</span><span>{a}</span></div>)}
-      </div>
-      <button className="test-retry-btn" onClick={() => { setCurrent(0); setAnswers([]); setResult(null); }}>🔄 Qayta o'tish</button>
-      <button className="test-back-btn" onClick={onBack}>← Testlar ro'yxatiga</button>
-    </div>
-  );
+    <Result
+      result={result}
+      testId="depression"
+      testName="Depressiya Testi (PHQ-9)"
+      score={result.score}
+      onRetry={() => { setCurrent(0); setAnswers([]); setResult(null); }}
+      onBack={onBack}
+    />
+  ); 
+
 
   const pct = Math.round((current / DEPRESSION_Q.length) * 100);
   return (
@@ -328,18 +365,16 @@ function StressTest({ onBack }) {
   };
 
   if (result) return (
-    <div className="test-result">
-      <div className="result-emoji">{result.emoji}</div>
-      <div className="result-score-circle" style={{ borderColor: result.color, color: result.color }}>{result.score}<span>/40</span></div>
-      <div className="result-level" style={{ background: result.color + "22", color: result.color }}>{result.level}</div>
-      <h2>{result.state}</h2><p className="result-desc">{result.desc}</p>
-      <div className="result-advice"><h3>💡 Tavsiyalar</h3>
-        {result.advice.map((a, i) => <div key={i} className="advice-item"><span className="advice-num">{i + 1}</span><span>{a}</span></div>)}
-      </div>
-      <button className="test-retry-btn" onClick={() => { setCurrent(0); setAnswers([]); setResult(null); }}>🔄 Qayta o'tish</button>
-      <button className="test-back-btn" onClick={onBack}>← Testlar ro'yxatiga</button>
-    </div>
+    <Result
+      result={result}
+      testId="stress"
+      testName="Stress Testi (PSS-10)"
+      score={result.score}
+      onRetry={() => { setCurrent(0); setAnswers([]); setResult(null); }}
+      onBack={onBack}
+    />
   );
+
 
   const pct = Math.round((current / STRESS_Q.length) * 100);
   return (
@@ -391,18 +426,16 @@ function NikohTest({ onBack }) {
   };
 
   if (result) return (
-    <div className="test-result">
-      <div className="result-emoji">{result.emoji}</div>
-      <div className="result-score-circle" style={{ borderColor: result.color, color: result.color }}>{result.score}<span>/40</span></div>
-      <div className="result-level" style={{ background: result.color + "22", color: result.color }}>{result.level}</div>
-      <h2>{result.state}</h2><p className="result-desc">{result.desc}</p>
-      <div className="result-advice"><h3>💡 Tavsiyalar</h3>
-        {result.advice.map((a, i) => <div key={i} className="advice-item"><span className="advice-num">{i + 1}</span><span>{a}</span></div>)}
-      </div>
-      <button className="test-retry-btn" onClick={() => { setCurrent(0); setAnswers([]); setResult(null); }}>🔄 Qayta o'tish</button>
-      <button className="test-back-btn" onClick={onBack}>← Testlar ro'yxatiga</button>
-    </div>
-  );
+    <Result
+      result={result}
+      testId="nikoh"
+      testName="Nikohga Tayyorlik Testi"
+      score={result.score}
+      onRetry={() => { setCurrent(0); setAnswers([]); setResult(null); }}
+      onBack={onBack}
+    />
+  ); 
+
 
   const pct = Math.round((current / NIKOH_Q.length) * 100);
   return (
@@ -486,7 +519,11 @@ function OilaTest({ onBack }) {
 // ═══════════════════════════════════════════════
 // UMUMIY RESULT KOMPONENTI
 // ═══════════════════════════════════════════════
-function Result({ result, onRetry, onBack }) {
+function Result({ result, onRetry, onBack, testId, testName, score }) {
+  useEffect(() => {
+    saveTestResult(testId, testName, score, result.state, result.desc);
+  }, []);
+
   return (
     <div className="test-result">
       <div className="result-emoji">{result.emoji}</div>
