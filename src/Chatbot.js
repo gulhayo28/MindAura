@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import "./Chatbot.css";
 import { useAuth } from "./AuthContext";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = "https://mindaura-backend-4.onrender.com";
 
 const QUICK_QUESTIONS = [
   "Stress bilan qanday kurashish mumkin?",
