@@ -673,7 +673,7 @@ function AdminLogin({ onLogin }) {
     setLoading(true);
       if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
         try {
-          const res = await fetch("http://localhost:8000/auth/login", {
+            const res = await fetch("https://mindaura-backend-4.onrender.com/auth/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email, password })
