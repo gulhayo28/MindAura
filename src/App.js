@@ -10,8 +10,8 @@ import logo from './logo1.webp';
 import Exercises from "./Exercises";
 import Trainings from "./Trainings";
 import AdminApp from "./AdminApp";
-//import AdminUpload from "./AdminUpload";
 import Library from "./Library";
+import Profile from './Profile';
 
 function Navbar({ page, setPage, onLoginClick }) {
   const [open, setOpen] = useState(false);
@@ -26,7 +26,6 @@ function Navbar({ page, setPage, onLoginClick }) {
     { label: "Mashqlar", key: "exercises" },
     { label: "Treninglar", key: "trainings" },
     { label: "Kutubxona", key: "library" },
-  
   ];
 
   const handleLogout = () => {
@@ -62,7 +61,12 @@ function Navbar({ page, setPage, onLoginClick }) {
         <li>
           {user ? (
             <div className="nav-user">
-              <span className="nav-username">👤 {user.username}</span>
+              <button 
+                className="nav-btn nav-btn-outline" 
+                onClick={() => setPage("profile")}
+              >
+                👤 {user.username}
+              </button>
               <button className="nav-btn nav-btn-outline" onClick={handleLogout}>Chiqish</button>
             </div>
           ) : (
@@ -79,6 +83,7 @@ function Navbar({ page, setPage, onLoginClick }) {
     </nav>
   );
 }
+
 
 function Hero({ setPage, onLoginClick }) {
   const { user } = useAuth();
@@ -188,6 +193,7 @@ function Footer() {
 
 export default function App() {
   const [page, setPage] = useState("home");
+  const { user } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
 
   // ── ADMIN PANEL ──
@@ -221,6 +227,7 @@ export default function App() {
       {page === "psychologists" && <><Psychologists /><Footer /></>}
       {page === "trainings"     && <Trainings />}
       {page === "library"       && <Library />}
+      {page === "profile" && <Profile user={user} />}
     </div>
   );
 }

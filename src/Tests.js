@@ -542,23 +542,7 @@ function Result({ result, onRetry, onBack, testId, testName, score }) {
 // ═══════════════════════════════════════════════
 // ASOSIY SAHIFA
 // ═══════════════════════════════════════════════
-const TESTS_LIST = [
-  { id: "luscher", emoji: "🎨", title: "Lyusher Rang Testi", desc: "Ranglarni tanlash orqali hozirgi ruhiy holatingizni aniqlang", duration: "3-5 daqiqa", questions: "8 rang × 2", color: "#7c3aed", tag: "Klassik" },
-  { id: "temperament", emoji: "🧬", title: "Temperament Testi", desc: "Xolerik, Sangvinik, Flegmatik yoki Melanxolik — qaysi tipsiz?", duration: "5-7 daqiqa", questions: "20 savol", color: "#ef4444", tag: "Shaxsiyat" },
-  { id: "depression", emoji: "🌧️", title: "Depressiya Testi (PHQ-9)", desc: "Depressiya belgilarini aniqlash uchun klinik standart test", duration: "2-3 daqiqa", questions: "9 savol", color: "#6366f1", tag: "Klinik standart" },
-  { id: "stress", emoji: "🌡️", title: "Stress Darajasi Testi", desc: "So'nggi oy ichida stress darajangizni o'lchang (PSS-10)", duration: "2-3 daqiqa", questions: "10 savol", color: "#f59e0b", tag: "Keng qo'llaniladigan" },
-  { id: "nikoh", emoji: "💍", title: "Nikohga Tayyorlik Testi", desc: "Nikoh uchun emotsional va amaliy tayyorligingizni aniqlang", duration: "3-4 daqiqa", questions: "10 savol", color: "#ec4899", tag: "Oilaviy" },
-  { id: "oila", emoji: "💑", title: "Oilaviy Moslik Testi", desc: "Hamkoringiz bilan qanchalik mos kelishingizni tekshiring", duration: "3-4 daqiqa", questions: "10 savol", color: "#e11d48", tag: "Munosabatlar" },
-  { id: "szondi", emoji: "🎭", title: "Sondi Testi", desc: "6 seriya yuzlardan 2 tasini tanlash orqali ongsiz ehtiyojlarni aniqlang", duration: "3-5 daqiqa", questions: "6 seriya × 2 tanlov", color: "#7c3aed", tag: "Klassik" },
-  { id:"rorschach", emoji:"🌊", title:"Rorschach Dog' Testi", desc:"10 ta siyoh dog'ida nimani ko'rishingiz shaxsiyatingizni aks ettiradi", duration:"3-4 daqiqa", questions:"10 savol", color:"#1d4ed8", tag:"Proektiv" },
-  { id:"big5", emoji:"🧬", title:"Big Five Shaxsiyat", desc:"Dunyoning eng ishonchli 5 omilli shaxsiyat modeli", duration:"3-4 daqiqa", questions:"15 savol", color:"#553c9a", tag:"Ilmiy" },
-  { id:"enneagram", emoji:"⭕", title:"Enneagram (9 tip)", desc:"9 ta shaxsiyat tipidan qaysisingiz? Chuqur o'z-o'zini tushunish", duration:"3-5 daqiqa", questions:"5 savol", color:"#7c3aed", tag:"Chuqur tahlil" },
-  { id:"empathy", emoji:"💜", title:"Empatiya Testi", desc:"Boshqalarning his-tuyg'ularini his qilish qobiliyatingizni o'lchang", duration:"2-3 daqiqa", questions:"8 savol", color:"#db2777", tag:"Ijtimoiy" },
-  { id:"narcissism", emoji:"🪞", title:"Narsisizm Testi (NPI)", desc:"Sog'lom o'z-o'ziga hurmat va narsisizm chegarasini aniqlang", duration:"2-3 daqiqa", questions:"8 savol", color:"#f59e0b", tag:"Shaxsiyat" },
-  { id:"darktriad", emoji:"🌑", title:"Dark Triad Testi", desc:"Makkyavelizm, Psixopatiya va Narsisizm darajasini aniqlang", duration:"2-3 daqiqa", questions:"9 savol", color:"#374151", tag:"Ilmiy" },
-  { id:"attachment", emoji:"🔗", title:"Bog'lanish Uslubi Testi", desc:"Munosabatlarda xavfsiz, xavotirli yoki qochuvchi tip?", duration:"2-3 daqiqa", questions:"5 savol", color:"#ec4899", tag:"Munosabatlar" },
-  { id:"trauma", emoji:"💙", title:"Bolaliк Travmasi Testi", desc:"Bolaliкdagi tajribalar va ularning ta'sirini tushunish", duration:"3-4 daqiqa", questions:"10 savol", color:"#7c3aed", tag:"Travma" },
-];
+
 
 
 
