@@ -17,12 +17,13 @@ const BACKEND = "https://mindaura-backend-4.onrender.com";
 async function saveTestResult(testId, testName, score, resultLabel, resultDesc) {
   const token = localStorage.getItem("access_token");
   if (!token) return;
-  try {
-    await fetch(`${BACKEND}/test-results/`, {
+  
+  const doSave = async (t) => {
+    return await fetch(`${BACKEND}/test-results/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
+        "Authorization": `Bearer ${t}`
       },
       body: JSON.stringify({
         test_id: testId,
@@ -32,6 +33,26 @@ async function saveTestResult(testId, testName, score, resultLabel, resultDesc) 
         result_desc: resultDesc,
       })
     });
+  };
+
+  try {
+    let res = await doSave(token);
+    
+    // 401 bo'lsa — refresh qilib qayta urin
+    if (res.status === 401) {
+      const refresh_token = localStorage.getItem("refresh_token");
+      if (!refresh_token) return;
+      const refreshRes = await fetch(`${BACKEND}/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token }),
+      });
+      if (refreshRes.ok) {
+        const data = await refreshRes.json();
+        localStorage.setItem("access_token", data.access_token);
+        await doSave(data.access_token); // yangi token bilan qayta saqlash
+      }
+    }
   } catch (e) {
     console.log("Saqlashda xato:", e);
   }
@@ -473,6 +494,12 @@ function OilaTest({ onBack }) {
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState([]);
   const [result, setResult] = useState(null);
+
+  useEffect(() => {
+    if (result) {
+      saveTestResult("nikoh_oila", "Oilaviy Moslik Testi", result.score, result.state, result.desc);
+    }
+  }, [result]);
 
   const handleAnswer = (val) => {
     const newAns = [...answers, val];
