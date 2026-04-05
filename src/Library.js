@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import "./Library.css";
 
 const CDN = "https://PSCHOLOGY.b-cdn.net";
-const BASE_URL = "http://127.0.0.1:8000";
+const BASE_URL = "https://mindaura-backend-4.onrender.com";;
 
 function getToken() { return localStorage.getItem("access_token"); }
 
