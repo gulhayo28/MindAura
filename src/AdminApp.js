@@ -92,49 +92,58 @@ const Badge = ({ text, type="default" }) => {
 // ─── DASHBOARD ───────────────────────────────────────
 function Dashboard({ token }) {
   const [stats, setStats] = useState(null);
-  const [activity, setActivity] = useState([]);
+  const [recentUsers, setRecentUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       adminFetch("/admin/stats", token),
-      adminFetch("/admin/activity?days=7", token),
-    ]).then(([s, a]) => {
+      adminFetch("/admin/users?limit=5", token),  // ← recent-users emas!
+    ]).then(([s, u]) => {
       if (s) setStats(s);
-      if (a) setActivity(a);
+      // u massiv bo'lsa, oxirgi 5 tasini ol
+      if (u && Array.isArray(u)) {
+        setRecentUsers(u.slice(0, 5));
+      }
       setLoading(false);
     });
   }, [token]);
 
   const metrics = stats ? [
-    { val: stats.total_users.toLocaleString(),            label:"Jami foydalanuvchi", delta:`+${stats.new_users_this_week} bu hafta`, up:true,  color:"#6C5CE7" },
-    { val: stats.total_challenges_taken.toLocaleString(), label:"Challengelar",        delta:"Jami",                                   up:true,  color:"#0d7a50" },
-    { val: stats.total_days_completed.toLocaleString(),   label:"Bajarilgan kunlar",  delta:"Jami",                                   up:true,  color:"#b45309" },
-    { val: stats.active_users.toLocaleString(),           label:"Faol foydalanuvchi", delta:`+${stats.new_users_this_month} bu oy`,   up:true,  color:"#0369a1" },
+    { val: stats.total_users.toLocaleString(),            label:"Jami foydalanuvchi", delta:`+${stats.new_users_this_week} bu hafta`, up:true, color:"#6C5CE7" },
+    { val: stats.total_challenges_taken.toLocaleString(), label:"Challengelar",        delta:"Jami",                                  up:true, color:"#0d7a50" },
+    { val: stats.total_days_completed.toLocaleString(),   label:"Bajarilgan kunlar",  delta:"Jami",                                  up:true, color:"#b45309" },
+    { val: stats.active_users.toLocaleString(),           label:"Faol foydalanuvchi", delta:`+${stats.new_users_this_month} bu oy`,  up:true, color:"#0369a1" },
   ] : [
-    { val:"...", label:"Jami foydalanuvchi", delta:"",    up:true,  color:"#6C5CE7" },
-    { val:"...", label:"Challengelar",        delta:"",   up:true,  color:"#0d7a50" },
-    { val:"...", label:"Bajarilgan kunlar",  delta:"",    up:true,  color:"#b45309" },
-    { val:"...", label:"Faol foydalanuvchi", delta:"",    up:true,  color:"#0369a1" },
+    { val:"...", label:"Jami foydalanuvchi", delta:"", up:true, color:"#6C5CE7" },
+    { val:"...", label:"Challengelar",        delta:"", up:true, color:"#0d7a50" },
+    { val:"...", label:"Bajarilgan kunlar",  delta:"", up:true, color:"#b45309" },
+    { val:"...", label:"Faol foydalanuvchi", delta:"", up:true, color:"#0369a1" },
   ];
+
+  const formatTime = (dateStr) => {
+    if (!dateStr) return "Noma'lum";  
+    const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
+    if (diff < 60) return `${diff} soniya oldin`;
+    if (diff < 3600) return `${Math.floor(diff/60)} daqiqa oldin`;
+    if (diff < 86400) return `${Math.floor(diff/3600)} soat oldin`;
+    return `${Math.floor(diff/86400)} kun oldin`;
+  };
 
   return (
     <div>
-      {/* Metrics */}
       <div className="adm-metrics">
         {metrics.map((m,i) => (
           <div key={i} className="adm-metric">
             <div className="adm-metric-val" style={{color:m.color}}>{m.val}</div>
             <div className="adm-metric-label">{m.label}</div>
-            <div className="adm-metric-delta" style={{color: m.up?"#0d7a50":"#b91c1c"}}>
-              {m.up?"↑":"↓"} {m.delta}
-            </div>
+            <div className="adm-metric-delta" style={{color:"#0d7a50"}}>↑ {m.delta}</div>
           </div>
         ))}
       </div>
 
       <div className="adm-row2">
-        {/* Test statistics */}
+        {/* Test statistics — hozircha mock */}
         <div className="adm-card">
           <div className="adm-card-title">Eng ko'p o'tilgan testlar</div>
           {MOCK_TESTS.slice(0,5).map((t,i) => {
@@ -151,37 +160,41 @@ function Dashboard({ token }) {
           })}
         </div>
 
-        {/* Recent users */}
+        {/* ✅ Real oxirgi foydalanuvchilar */}
         <div className="adm-card">
           <div className="adm-card-title">Oxirgi foydalanuvchilar</div>
-          {MOCK_USERS.slice(0,5).map((u,i) => (
+          {loading ? (
+            <div style={{textAlign:"center", color:"#9ca3af", padding:16}}>Yuklanmoqda...</div>
+          ) : recentUsers.length === 0 ? (
+            <div style={{textAlign:"center", color:"#9ca3af", padding:16}}>Foydalanuvchi yo'q</div>
+          ) : recentUsers.map((u,i) => (
             <div key={i} className="adm-user-row">
-              <AvaComp name={u.name}/>
+              <AvaComp name={u.name} />
               <div style={{flex:1}}>
-                <div style={{fontSize:13,fontWeight:500}}>{u.name}</div>
-                <div style={{fontSize:11,color:"#9ca3af"}}>{u.lastActive}</div>
+                <div style={{fontSize:13, fontWeight:500}}>{u.name}</div>
+                <div style={{fontSize:11, color:"#9ca3af"}}>{formatTime(u.created_at)}</div>
               </div>
-              <div style={{width:7,height:7,borderRadius:"50%",background: u.status==="faol"?"#22c55e":"#d1d5db"}}/>
+              <div style={{width:7, height:7, borderRadius:"50%", background: u.is_active ? "#22c55e" : "#d1d5db"}}/>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Psixolog approvals */}
+      {/* Psixolog approvals — mock, keyingi bosqichda real qilamiz */}
       <div className="adm-card" style={{marginTop:14}}>
         <div className="adm-card-title">
           Psixolog so'rovlari
           <Badge text={`${MOCK_PSYCHS.filter(p=>p.status==="kutmoqda").length} ta kutmoqda`} type="danger"/>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
+        <div style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10}}>
           {MOCK_PSYCHS.filter(p=>p.status==="kutmoqda").map((p,i) => (
             <div key={i} className="adm-psych-pending">
               <AvaComp name={p.name} size={34}/>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:13,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</div>
-                <div style={{fontSize:11,color:"#9ca3af"}}>{p.spec}</div>
+              <div style={{flex:1, minWidth:0}}>
+                <div style={{fontSize:13, fontWeight:500, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{p.name}</div>
+                <div style={{fontSize:11, color:"#9ca3af"}}>{p.spec}</div>
               </div>
-              <div style={{display:"flex",gap:5}}>
+              <div style={{display:"flex", gap:5}}>
                 <button className="adm-btn-sm adm-btn-ok">✓</button>
                 <button className="adm-btn-sm adm-btn-no">✕</button>
               </div>
@@ -384,12 +397,29 @@ function Users({ token }) {
 }
 
 // ─── PSYCHOLOGISTS ───────────────────────────────────
-function Psychologists() {
-  const [psychs, setPsychs] = useState(MOCK_PSYCHS);
+function Psychologists({ token }) {
+  // MOCK_PSYCHS o'rniga DBdan yuklasin
+  const [psychs, setPsychs] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const approve = (id) => setPsychs(prev => prev.map(p => p.id===id ? {...p, status:"tasdiqlangan"} : p));
-  const reject  = (id) => setPsychs(prev => prev.filter(p => p.id!==id));
+  const loadPsychs = async () => {
+    setLoading(true);
+    const data = await adminFetch("/admin/psychologists", token);
+    if (data) setPsychs(data);
+    setLoading(false);
+  };
 
+  useEffect(() => { loadPsychs(); }, []);
+
+  const approve = async (id) => {
+    await adminFetch(`/admin/psychologists/${id}/approve`, token, { method: "PATCH" });
+    loadPsychs();
+  };
+
+  const reject = async (id) => {
+    await adminFetch(`/admin/psychologists/${id}/reject`, token, { method: "PATCH" });
+    loadPsychs();
+  };
   const pending   = psychs.filter(p => p.status==="kutmoqda");
   const approved  = psychs.filter(p => p.status==="tasdiqlangan");
 
@@ -449,52 +479,107 @@ function Psychologists() {
 }
 
 // ─── TESTS ───────────────────────────────────────────
-function Tests() {
+function Tests({ token }) {
+  const [stats, setStats]   = useState(null);
+  const [tests, setTests]   = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      adminFetch("/admin/stats", token),
+      adminFetch("/admin/tests/stats", token),
+    ]).then(([s, t]) => {
+      if (s) setStats(s);
+      if (t && Array.isArray(t)) setTests(t);
+      else if (t && t.tests) setTests(t.tests);
+      setLoading(false);
+    });
+  }, [token]);
+
+  const totalTaken   = tests.reduce((sum, t) => sum + (t.taken || t.total_taken || 0), 0);
+  const avgScore     = tests.length
+    ? Math.round(tests.reduce((sum, t) => sum + (t.avg_score || t.avgScore || 0), 0) / tests.length)
+    : 0;
+  const maxTaken     = Math.max(...tests.map(t => t.taken || t.total_taken || 1), 1);
+
   return (
     <div>
-      <div className="adm-metrics" style={{gridTemplateColumns:"repeat(3,1fr)"}}>
+      <div className="adm-metrics" style={{ gridTemplateColumns: "repeat(3,1fr)" }}>
         <div className="adm-metric">
-          <div className="adm-metric-val" style={{color:"#6C5CE7"}}>21</div>
+          <div className="adm-metric-val" style={{ color: "#6C5CE7" }}>
+            {loading ? "..." : stats?.total_tests ?? tests.length}
+          </div>
           <div className="adm-metric-label">Jami testlar</div>
         </div>
         <div className="adm-metric">
-          <div className="adm-metric-val">3,847</div>
+          <div className="adm-metric-val">
+            {loading ? "..." : totalTaken.toLocaleString()}
+          </div>
           <div className="adm-metric-label">Jami o'tishlar</div>
         </div>
         <div className="adm-metric">
-          <div className="adm-metric-val" style={{color:"#0d7a50"}}>61%</div>
+          <div className="adm-metric-val" style={{ color: "#0d7a50" }}>
+            {loading ? "..." : avgScore + "%"}
+          </div>
           <div className="adm-metric-label">O'rtacha natija</div>
         </div>
       </div>
+
       <div className="adm-card">
         <div className="adm-card-title">Testlar statistikasi</div>
-        <table className="adm-table">
-          <thead><tr><th>Test nomi</th><th>O'tilgan</th><th>O'rtacha ball</th><th>Holat</th></tr></thead>
-          <tbody>
-            {MOCK_TESTS.map(t => {
-              const pct = Math.round((t.taken/847)*100);
-              return (
-                <tr key={t.id}>
-                  <td style={{fontSize:13,fontWeight:500}}>{t.name}</td>
-                  <td>
-                    <div style={{display:"flex",alignItems:"center",gap:8}}>
-                      <div style={{flex:1,height:4,background:"#f0eeff",borderRadius:999,overflow:"hidden",minWidth:80}}>
-                        <div style={{width:pct+"%",height:"100%",background:"#6C5CE7",borderRadius:999}}/>
+        {loading ? (
+          <div style={{ textAlign: "center", color: "#9ca3af", padding: 24 }}>
+            Yuklanmoqda...
+          </div>
+        ) : tests.length === 0 ? (
+          <div style={{ textAlign: "center", color: "#9ca3af", padding: 24 }}>
+            Ma'lumot yo'q
+          </div>
+        ) : (
+          <table className="adm-table">
+            <thead>
+              <tr>
+                <th>Test nomi</th>
+                <th>O'tilgan</th>
+                <th>O'rtacha ball</th>
+                <th>Holat</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tests.map((t, i) => {
+                const taken    = t.taken ?? t.total_taken ?? 0;
+                const avgS     = t.avg_score ?? t.avgScore ?? 0;
+                const popular  = t.popular ?? (i < 2);
+                const pct      = Math.round((taken / maxTaken) * 100);
+                return (
+                  <tr key={t.id ?? i}>
+                    <td style={{ fontSize: 13, fontWeight: 500 }}>
+                      {t.name ?? t.test_name}
+                    </td>
+                    <td>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ flex: 1, height: 4, background: "#f0eeff", borderRadius: 999, overflow: "hidden", minWidth: 80 }}>
+                          <div style={{ width: pct + "%", height: "100%", background: "#6C5CE7", borderRadius: 999 }} />
+                        </div>
+                        <span style={{ fontSize: 12, color: "#6b7280", minWidth: 30 }}>{taken}</span>
                       </div>
-                      <span style={{fontSize:12,color:"#6b7280",minWidth:30}}>{t.taken}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <span style={{fontSize:13,fontWeight:500,color: t.avgScore>=60?"#0d7a50":t.avgScore>=40?"#b45309":"#b91c1c"}}>
-                      {t.avgScore}%
-                    </span>
-                  </td>
-                  <td>{t.popular ? <Badge text="Mashhur" type="info"/> : <Badge text="Oddiy"/>}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                    </td>
+                    <td>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: avgS >= 60 ? "#0d7a50" : avgS >= 40 ? "#b45309" : "#b91c1c" }}>
+                        {Math.round(avgS)}%
+                      </span>
+                    </td>
+                    <td>
+                      {popular
+                        ? <Badge text="Mashhur" type="info" />
+                        : <Badge text="Oddiy" />}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
@@ -752,9 +837,21 @@ const ICONS = {
 
 function AdminLayout({ onLogout, onExit }) {
   const [active, setActive] = useState("dashboard");
+  // ✅ Token state sifatida saqlansin
+  const token = sessionStorage.getItem("adm_token");
 
-  const PAGES = { dashboard:<Dashboard token={sessionStorage.getItem("adm_token")}/>, users:<Users token={sessionStorage.getItem("adm_token")}/>, psychs:<Psychologists/>, tests:<Tests token={sessionStorage.getItem("adm_token")}/>, trainings:<Trainings/>, messages:<Messages/>, finance:<Finance token={sessionStorage.getItem("adm_token")}/> };
-  const title = NAV_ITEMS.find(n=>n.key===active)?.label || "Dashboard";
+  const PAGES = {
+    dashboard:  <Dashboard   token={token} />,
+    users:      <Users       token={token} />,
+    psychs:     <Psychologists token={token} />,
+    tests:   <Tests token={token} />,
+    trainings:  <Trainings   token={token} />,
+    messages:   <Messages    token={token} />,
+    finance:    <Finance     token={token} />,
+  };
+
+  const title = NAV_ITEMS.find(n => n.key === active)?.label || "Dashboard";
+
 
   return (
     <div className="adm-layout">
@@ -831,6 +928,24 @@ function AdminLayout({ onLogout, onExit }) {
       </div>
     </div>
   );
+}
+
+// Admin tests sahifasida
+async function loadTestStats() {
+  const token = localStorage.getItem("adminToken");
+  
+  const res = await fetch("/admin/test-stats", {
+    headers: { "Authorization": `Bearer ${token}` }
+  });
+  const data = await res.json();
+  
+  // data.total_completions → "3,847 Jami o'tishlar"
+  // data.avg_score         → "61% O'rtacha natija"  
+  // data.tests             → jadval uchun ro'yxat
+  // data.tests[i].count    → "O'tilgan" ustuni
+  // data.tests[i].avg_score → "O'rtacha ball" ustuni
+  
+  return data;
 }
 
 // ─── MAIN EXPORT ─────────────────────────────────────
