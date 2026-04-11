@@ -58,3 +58,10 @@ export const getRecommendations = () => API.get('/recommendations');
 export const getTrending = () => API.get('/recommendations/trending');
 
 export default API;
+
+// frontend/src/api.js (mavjud faylning oxiriga qo'shing)
+
+// ─── PSYCHOLOGIST ──────────────────────────────────────────
+export const getClients = () => API.get('/psychologist/clients');
+export const getClientDetail = (id) => API.get(`/psychologist/clients/${id}`);
+export const updateClientNotes = (id, data) => API.put(`/psychologist/clients/${id}/notes`, data);

@@ -4,11 +4,26 @@ import "./Admin.css";
 const API = "https://mindaura-backend-4.onrender.com";
 
 async function adminFetch(path, token, opts = {}) {
+  if (!token) {
+    console.error("Token yo'q, qayta login qiling");
+    sessionStorage.removeItem("adm_auth");
+    sessionStorage.removeItem("adm_token");
+    window.location.reload();
+    return null;
+  }
   try {
     const res = await fetch(API + path, {
       ...opts,
       headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json", ...opts.headers }
     });
+    // ✅ 401 bo'lsa token eskirgan — avtomatik logout
+    if (res.status === 401) {
+      console.error("Token muddati tugagan, qayta login...");
+      sessionStorage.removeItem("adm_auth");
+      sessionStorage.removeItem("adm_token");
+      window.location.reload();
+      return null;
+    }
     if (!res.ok) throw new Error(await res.text());
     return await res.json();
   } catch (e) {
@@ -17,12 +32,9 @@ async function adminFetch(path, token, opts = {}) {
   }
 }
 
-
-// ─── ADMIN CREDENTIALS ───────────────────────────────
 const ADMIN_EMAIL    = "admin@umidnoma.uz";
 const ADMIN_PASSWORD = "Admin2025!";
 
-// ─── MOCK DATA ────────────────────────────────────────
 const MOCK_USERS = [
   { id:1,  name:"Dilnoza T.",  email:"dilnoza@mail.uz",   status:"faol",      tests:7,  joined:"12 mart 2026", lastActive:"2 daq oldin" },
   { id:2,  name:"Sardor M.",   email:"sardor@gmail.com",  status:"faol",      tests:3,  joined:"10 mart 2026", lastActive:"15 daq oldin" },
@@ -70,12 +82,17 @@ const MOCK_MESSAGES = [
   { id:5, from:"Malika B.",     text:"Ajoyib platforma, rahmat!",               time:"Kecha",        read:true,  type:"fikr"    },
 ];
 
-// ─── HELPERS ─────────────────────────────────────────
-const AvaComp = ({ name, size=28, bg="#EEECfd", color="#4A3DB5" }) => (
-  <div style={{ width:size, height:size, borderRadius:"50%", background:bg, color, fontSize:size*0.4, fontWeight:600, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-    {name[0].toUpperCase()}
-  </div>
-);
+// ─── FIX: AvaComp - name undefined bo'lsa crash bermaydi ─────────────────────
+const AvaComp = ({ name, size=28, bg="#EEECfd", color="#4A3DB5" }) => {
+  // ✅ ASOSIY TUZATMA: name undefined/null/bo'sh bo'lsa "?" ko'rsatiladi
+  const safeName = (typeof name === "string" && name.trim().length > 0) ? name.trim() : null;
+  const letter = safeName ? safeName[0].toUpperCase() : "?";
+  return (
+    <div style={{ width:size, height:size, borderRadius:"50%", background:bg, color, fontSize:size*0.4, fontWeight:600, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+      {letter}
+    </div>
+  );
+};
 
 const Badge = ({ text, type="default" }) => {
   const styles = {
@@ -89,7 +106,6 @@ const Badge = ({ text, type="default" }) => {
   return <span style={{ background:s.bg, color:s.color, borderRadius:999, fontSize:11, fontWeight:500, padding:"2px 9px" }}>{text}</span>;
 };
 
-// ─── DASHBOARD ───────────────────────────────────────
 function Dashboard({ token }) {
   const [stats, setStats] = useState(null);
   const [recentUsers, setRecentUsers] = useState([]);
@@ -98,10 +114,9 @@ function Dashboard({ token }) {
   useEffect(() => {
     Promise.all([
       adminFetch("/admin/stats", token),
-      adminFetch("/admin/users?limit=5", token),  // ← recent-users emas!
+      adminFetch("/admin/users?limit=5", token),
     ]).then(([s, u]) => {
       if (s) setStats(s);
-      // u massiv bo'lsa, oxirgi 5 tasini ol
       if (u && Array.isArray(u)) {
         setRecentUsers(u.slice(0, 5));
       }
@@ -122,7 +137,7 @@ function Dashboard({ token }) {
   ];
 
   const formatTime = (dateStr) => {
-    if (!dateStr) return "Noma'lum";  
+    if (!dateStr) return "Noma'lum";
     const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
     if (diff < 60) return `${diff} soniya oldin`;
     if (diff < 3600) return `${Math.floor(diff/60)} daqiqa oldin`;
@@ -143,7 +158,6 @@ function Dashboard({ token }) {
       </div>
 
       <div className="adm-row2">
-        {/* Test statistics — hozircha mock */}
         <div className="adm-card">
           <div className="adm-card-title">Eng ko'p o'tilgan testlar</div>
           {MOCK_TESTS.slice(0,5).map((t,i) => {
@@ -160,27 +174,29 @@ function Dashboard({ token }) {
           })}
         </div>
 
-        {/* ✅ Real oxirgi foydalanuvchilar */}
         <div className="adm-card">
           <div className="adm-card-title">Oxirgi foydalanuvchilar</div>
           {loading ? (
             <div style={{textAlign:"center", color:"#9ca3af", padding:16}}>Yuklanmoqda...</div>
           ) : recentUsers.length === 0 ? (
             <div style={{textAlign:"center", color:"#9ca3af", padding:16}}>Foydalanuvchi yo'q</div>
-          ) : recentUsers.map((u,i) => (
-            <div key={i} className="adm-user-row">
-              <AvaComp name={u.name} />
-              <div style={{flex:1}}>
-                <div style={{fontSize:13, fontWeight:500}}>{u.name}</div>
-                <div style={{fontSize:11, color:"#9ca3af"}}>{formatTime(u.created_at)}</div>
+          ) : recentUsers.map((u,i) => {
+            // ✅ FIX: name har doim string bo'lishini ta'minlaymiz
+            const displayName = u.full_name || u.username || u.email || "Foydalanuvchi";
+            return (
+              <div key={i} className="adm-user-row">
+                <AvaComp name={displayName} />
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13, fontWeight:500}}>{displayName}</div>
+                  <div style={{fontSize:11, color:"#9ca3af"}}>{formatTime(u.created_at)}</div>
+                </div>
+                <div style={{width:7, height:7, borderRadius:"50%", background: u.is_active ? "#22c55e" : "#d1d5db"}}/>
               </div>
-              <div style={{width:7, height:7, borderRadius:"50%", background: u.is_active ? "#22c55e" : "#d1d5db"}}/>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
-      {/* Psixolog approvals — mock, keyingi bosqichda real qilamiz */}
       <div className="adm-card" style={{marginTop:14}}>
         <div className="adm-card-title">
           Psixolog so'rovlari
@@ -206,7 +222,6 @@ function Dashboard({ token }) {
   );
 }
 
-// ─── USERS ───────────────────────────────────────────
 function Users({ token }) {
   const [search, setSearch]     = useState("");
   const [filter, setFilter]     = useState("barchasi");
@@ -224,7 +239,8 @@ function Users({ token }) {
     const data = await adminFetch(`/admin/users?${params}`, token);
     if (data) setUsers(data.map(u => ({
       ...u,
-      name: u.full_name || u.username,
+      // ✅ FIX: name hech qachon undefined bo'lmaydi
+      name: u.full_name || u.username || u.email || "Foydalanuvchi",
       status: u.is_active ? "faol" : "bloklangan",
       joined: new Date(u.created_at).toLocaleDateString("uz-UZ", { day:"numeric", month:"short", year:"numeric" }),
     })));
@@ -256,7 +272,6 @@ function Users({ token }) {
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: selected ? "1.2fr 1fr" : "1fr", gap: 14 }}>
-      {/* ── Ro'yxat ── */}
       <div>
         <div className="adm-toolbar">
           <div style={{ display: "flex", gap: 8 }}>
@@ -321,7 +336,6 @@ function Users({ token }) {
         </div>
       </div>
 
-      {/* ── Detail panel ── */}
       {selected && (
         <div className="adm-card" style={{ position: "sticky", top: 0, maxHeight: "85vh", overflowY: "auto" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -334,15 +348,14 @@ function Users({ token }) {
             <div style={{ textAlign: "center", color: "#9ca3af", padding: 24 }}>Yuklanmoqda...</div>
           ) : detail ? (
             <>
-              {/* Avatar + info */}
               <div style={{ textAlign: "center", marginBottom: 16 }}>
-                <AvaComp name={selected.name} size={56} />
+                {/* ✅ FIX: detail.full_name || detail.username || "?" */}
+                <AvaComp name={detail.full_name || detail.username || detail.email || "Foydalanuvchi"} size={56} />
                 <div style={{ marginTop: 8, fontSize: 15, fontWeight: 600 }}>{detail.full_name || detail.username}</div>
                 <div style={{ fontSize: 12, color: "#9ca3af" }}>@{detail.username}</div>
                 <div style={{ fontSize: 12, color: "#9ca3af" }}>{detail.email}</div>
               </div>
 
-              {/* Stats */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
                 {[
                   { label: "Daraja", val: `⭐ ${detail.level}` },
@@ -357,7 +370,6 @@ function Users({ token }) {
                 ))}
               </div>
 
-              {/* Test natijalari */}
               <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Test natijalari</div>
               {detail.test_results?.length === 0 ? (
                 <div style={{ fontSize: 12, color: "#9ca3af", textAlign: "center", padding: 12 }}>Hali test o'tilmagan</div>
@@ -377,7 +389,6 @@ function Users({ token }) {
                 </div>
               )}
 
-              {/* Amallar */}
               <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
                 <button className="adm-btn" style={{ flex: 1, background: detail.is_active ? "#fee2e2" : "#e6f8f0", color: detail.is_active ? "#b91c1c" : "#0d7a50" }}
                   onClick={() => toggleBlock(detail.id)}>
@@ -396,16 +407,18 @@ function Users({ token }) {
   );
 }
 
-// ─── PSYCHOLOGISTS ───────────────────────────────────
 function Psychologists({ token }) {
-  // MOCK_PSYCHS o'rniga DBdan yuklasin
   const [psychs, setPsychs] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const loadPsychs = async () => {
     setLoading(true);
     const data = await adminFetch("/admin/psychologists", token);
-    if (data) setPsychs(data);
+    if (data) setPsychs(data.map(p => ({
+      ...p,
+      // ✅ FIX: psixolog name ham himoyalangan
+      name: p.full_name || p.name || p.username || "Psixolog",
+    })));
     setLoading(false);
   };
 
@@ -420,12 +433,14 @@ function Psychologists({ token }) {
     await adminFetch(`/admin/psychologists/${id}/reject`, token, { method: "PATCH" });
     loadPsychs();
   };
+
   const pending   = psychs.filter(p => p.status==="kutmoqda");
   const approved  = psychs.filter(p => p.status==="tasdiqlangan");
 
   return (
     <div>
-      {pending.length > 0 && (
+      {loading && <div style={{textAlign:"center",color:"#9ca3af",padding:24}}>Yuklanmoqda...</div>}
+      {!loading && pending.length > 0 && (
         <div className="adm-card" style={{marginBottom:14}}>
           <div className="adm-card-title">Tasdiqlash kutmoqda <Badge text={pending.length+" ta"} type="danger"/></div>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
@@ -478,7 +493,6 @@ function Psychologists({ token }) {
   );
 }
 
-// ─── TESTS ───────────────────────────────────────────
 function Tests({ token }) {
   const [stats, setStats]   = useState(null);
   const [tests, setTests]   = useState([]);
@@ -528,13 +542,9 @@ function Tests({ token }) {
       <div className="adm-card">
         <div className="adm-card-title">Testlar statistikasi</div>
         {loading ? (
-          <div style={{ textAlign: "center", color: "#9ca3af", padding: 24 }}>
-            Yuklanmoqda...
-          </div>
+          <div style={{ textAlign: "center", color: "#9ca3af", padding: 24 }}>Yuklanmoqda...</div>
         ) : tests.length === 0 ? (
-          <div style={{ textAlign: "center", color: "#9ca3af", padding: 24 }}>
-            Ma'lumot yo'q
-          </div>
+          <div style={{ textAlign: "center", color: "#9ca3af", padding: 24 }}>Ma'lumot yo'q</div>
         ) : (
           <table className="adm-table">
             <thead>
@@ -585,7 +595,6 @@ function Tests({ token }) {
   );
 }
 
-// ─── TRAININGS ───────────────────────────────────────
 function Trainings() {
   const [trainings, setTrainings] = useState(MOCK_TRAININGS);
 
@@ -628,7 +637,6 @@ function Trainings() {
   );
 }
 
-// ─── MESSAGES ────────────────────────────────────────
 function Messages() {
   const [messages, setMessages] = useState(MOCK_MESSAGES);
   const [selected, setSelected] = useState(null);
@@ -639,7 +647,6 @@ function Messages() {
 
   return (
     <div style={{display:"grid",gridTemplateColumns:"1fr 1.4fr",gap:14,height:"calc(100vh - 160px)",minHeight:400}}>
-      {/* List */}
       <div className="adm-card" style={{padding:0,overflow:"auto"}}>
         <div style={{padding:"12px 14px",borderBottom:"0.5px solid #e5e4f0",fontSize:13,fontWeight:500}}>
           Xabarlar <Badge text={messages.filter(m=>!m.read).length+" yangi"} type="danger"/>
@@ -660,7 +667,6 @@ function Messages() {
         ))}
       </div>
 
-      {/* Detail */}
       <div className="adm-card" style={{display:"flex",flexDirection:"column"}}>
         {selected ? (
           <>
@@ -688,7 +694,6 @@ function Messages() {
   );
 }
 
-// ─── FINANCE ─────────────────────────────────────────
 function Finance({ token }) {
   const months = ["Okt","Nov","Dek","Yan","Fev","Mart"];
   const data   = [1800000, 2100000, 2400000, 2900000, 3600000, 4200000];
@@ -710,7 +715,6 @@ function Finance({ token }) {
         <div className="adm-metric"><div className="adm-metric-val" style={{color:"#b91c1c"}}>2</div><div className="adm-metric-label">Qaytarishlar</div></div>
       </div>
 
-      {/* Bar chart */}
       <div className="adm-card" style={{marginBottom:14}}>
         <div className="adm-card-title">Oylik daromad dinamikasi</div>
         <div style={{display:"flex",alignItems:"flex-end",gap:12,height:120,padding:"8px 0"}}>
@@ -745,7 +749,6 @@ function Finance({ token }) {
   );
 }
 
-// ─── LOGIN ───────────────────────────────────────────
 function AdminLogin({ onLogin }) {
   const [email, setEmail]     = useState("");
   const [password, setPassword] = useState("");
@@ -764,20 +767,19 @@ function AdminLogin({ onLogin }) {
         body: JSON.stringify({ email, password })
       });
   
+      const data = await res.json();
+      console.log("Login response:", data);
+  
       if (res.ok) {
-        const data = await res.json();
-        // ✅ Tokenni to'g'ri saqlash
         sessionStorage.setItem("adm_token", data.access_token);
         sessionStorage.setItem("adm_auth", "1");
-        setLoading(false);
         onLogin();
       } else {
-        // Login muvaffaqiyatsiz
         setError("Email yoki parol noto'g'ri");
-        setLoading(false);
       }
     } catch (e) {
       setError("Server bilan bog'lanib bo'lmadi");
+    } finally {
       setLoading(false);
     }
   };
@@ -814,7 +816,6 @@ function AdminLogin({ onLogin }) {
   );
 }
 
-// ─── LAYOUT ──────────────────────────────────────────
 const NAV_ITEMS = [
   { key:"dashboard",  label:"Dashboard",          badge:null },
   { key:"users",      label:"Foydalanuvchilar",    badge:"1,204" },
@@ -837,14 +838,13 @@ const ICONS = {
 
 function AdminLayout({ onLogout, onExit }) {
   const [active, setActive] = useState("dashboard");
-  // ✅ Token state sifatida saqlansin
   const token = sessionStorage.getItem("adm_token");
 
   const PAGES = {
     dashboard:  <Dashboard   token={token} />,
     users:      <Users       token={token} />,
     psychs:     <Psychologists token={token} />,
-    tests:   <Tests token={token} />,
+    tests:      <Tests       token={token} />,
     trainings:  <Trainings   token={token} />,
     messages:   <Messages    token={token} />,
     finance:    <Finance     token={token} />,
@@ -852,10 +852,8 @@ function AdminLayout({ onLogout, onExit }) {
 
   const title = NAV_ITEMS.find(n => n.key === active)?.label || "Dashboard";
 
-
   return (
     <div className="adm-layout">
-      {/* SIDEBAR */}
       <div className="adm-sidebar">
         <div className="adm-sb-logo">
           <div className="adm-sb-icon">U</div>
@@ -908,13 +906,12 @@ function AdminLayout({ onLogout, onExit }) {
             <div style={{fontSize:10,color:"#9ca3af"}}>Super admin</div>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:4}}>
-          <button onClick={onLogout} style={{background:"none",border:"none",cursor:"pointer",color:"#9ca3af",fontSize:12,textAlign:"left"}}>Chiqish</button>
-          {onExit && <button onClick={onExit} style={{background:"none",border:"none",cursor:"pointer",color:"#6C5CE7",fontSize:11,textAlign:"left"}}>← Saytga qaytish</button>}
-        </div>
+            <button onClick={onLogout} style={{background:"none",border:"none",cursor:"pointer",color:"#9ca3af",fontSize:12,textAlign:"left"}}>Chiqish</button>
+            {onExit && <button onClick={onExit} style={{background:"none",border:"none",cursor:"pointer",color:"#6C5CE7",fontSize:11,textAlign:"left"}}>← Saytga qaytish</button>}
+          </div>
         </div>
       </div>
 
-      {/* MAIN */}
       <div className="adm-main">
         <div className="adm-topbar">
           <div style={{fontSize:15,fontWeight:600,color:"#1a1a2e"}}>{title}</div>
@@ -930,25 +927,6 @@ function AdminLayout({ onLogout, onExit }) {
   );
 }
 
-// Admin tests sahifasida
-async function loadTestStats() {
-  const token = localStorage.getItem("adminToken");
-  
-  const res = await fetch("/admin/test-stats", {
-    headers: { "Authorization": `Bearer ${token}` }
-  });
-  const data = await res.json();
-  
-  // data.total_completions → "3,847 Jami o'tishlar"
-  // data.avg_score         → "61% O'rtacha natija"  
-  // data.tests             → jadval uchun ro'yxat
-  // data.tests[i].count    → "O'tilgan" ustuni
-  // data.tests[i].avg_score → "O'rtacha ball" ustuni
-  
-  return data;
-}
-
-// ─── MAIN EXPORT ─────────────────────────────────────
 export default function AdminApp({ onExit }) {
   const [isLoggedIn, setIsLoggedIn] = useState(() => sessionStorage.getItem("adm_auth") === "1");
 

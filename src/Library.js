@@ -79,14 +79,20 @@ export default function Library() {
   });
 
   function handleDownload(doc) {
-    const file = doc.file.endsWith(".pdf") || doc.file.endsWith(".docx") 
-      ? doc.file 
-      : `${doc.file}.docx`;
-    const url = `${CDN}/${file}`;
-    const a = document.createElement("a");
-    a.href = url;
-    a.target = "_blank";
-    a.click();
+    const url = `${CDN}/${doc.file}`;
+    const ext = doc.file.split('.').pop().toLowerCase();
+    
+    if (ext === 'pdf') {
+      // PDF ni yangi tabda ochish
+      window.open(url, '_blank');
+    } else {
+      // docx, doc, ppt, txt — yuklab olish
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = doc.title;
+      a.target = "_blank";
+      a.click();
+    }
   }
 
   return (
@@ -156,7 +162,7 @@ export default function Library() {
                   <div className="lib-card-body">
                     <h3 className="lib-card-title">{doc.title}</h3>
                     <button className="lib-dl-btn" onClick={() => handleDownload(doc)}>
-                      ⬇️ Yuklab olish
+                      {doc.file.split('.').pop().toLowerCase() === 'pdf' ? '👁️ Ko\'rish' : '⬇️ Yuklab olish'}
                     </button>
                   </div>
                 </div>

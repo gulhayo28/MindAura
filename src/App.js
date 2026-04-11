@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import "./App.css";
 import Chatbot from "./Chatbot";
 import Psychologists from "./Psychologists";
@@ -12,7 +12,28 @@ import Trainings from "./Trainings";
 import AdminApp from "./AdminApp";
 import Library from "./Library";
 import Profile from './Profile';
+import PsychologistDashboard from './components/psychologist/PsychologistDashboard';
 
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+
+        {/* Psixolog paneli */}
+        <Route
+          path="/psychologist"
+          element={
+            <ProtectedRoute role="psychologist">
+              <PsychologistDashboard />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </BrowserRouter>
+  );
+}
 function Navbar({ page, setPage, onLoginClick }) {
   const [open, setOpen] = useState(false);
   const { user, logoutUser } = useAuth();
@@ -191,7 +212,7 @@ function Footer() {
   );
 }
 
-export default function App() {
+export default function AppWrapper() {
   const [page, setPage] = useState("home");
   const { user } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
@@ -200,11 +221,30 @@ export default function App() {
   if (window.location.hash === "#admin" || page === "admin") {
     return <AdminApp onExit={() => { window.location.hash = ""; setPage("home"); }} />;
   }
+  // YANGI (to'g'ri):
+  if (window.location.hash === "#psychologist" || page === "psychologist") {
+    return (
+      <PsychologistLogin 
+        onSuccess={() => { 
+          window.location.hash = ""; 
+          setPage("psychologist-dashboard"); 
+        }} 
+        onExit={() => { 
+          window.location.hash = ""; 
+          setPage("home"); 
+        }} 
+      />
+    );
+  }
 
-  const handleLoginSuccess = () => {
-    setShowLogin(false);
-    setPage("home");
-  };
+  if (page === "psychologist-dashboard") {
+    return <PsychologistDashboard onExit={() => setPage("home")} />;
+  }
+
+    const handleLoginSuccess = () => {
+      setShowLogin(false);
+      setPage("home");
+    };
 
   if (showLogin) {
     return <Login onSuccess={handleLoginSuccess} onBack={() => setShowLogin(false)} />;
@@ -228,6 +268,130 @@ export default function App() {
       {page === "trainings"     && <Trainings />}
       {page === "library"       && <Library />}
       {page === "profile" && <Profile user={user} />}
+      {page === "psychologist" && <PsychologistDashboard />}
+    </div>
+  );
+}
+
+
+function PsychologistLogin({ onSuccess, onExit }) {
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [error, setError] = React.useState("");
+
+  const handleLogin = () => {
+    console.log("Kirish bosildi:", email, password); // ← tekshirish uchun
+
+    const PSYCH_CREDENTIALS = [
+      { email: "psixolog@mindaura.uz", password: "psixolog123" },
+      { email: "admin@mindaura.uz", password: "admin123" },
+    ];
+
+    const found = PSYCH_CREDENTIALS.find(
+      c => c.email === email && c.password === password
+    );
+
+    if (found) {
+      onSuccess();
+    } else {
+      setError("Email yoki parol noto'g'ri!");
+    }
+  };
+
+  return (
+    <div style={{
+      minHeight: "100vh", display: "flex", alignItems: "center",
+      justifyContent: "center", background: "#F8F7FF"
+    }}>
+      <div style={{
+        background: "#fff", borderRadius: 20, padding: 40,
+        boxShadow: "0 8px 32px rgba(124,58,237,.12)",
+        width: 360, border: "1px solid #E5E7EB"
+      }}>
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <div style={{ fontSize: 40 }}>🧠</div>
+          <h2 style={{ fontWeight: 800, color: "#0D0A1E", marginTop: 8 }}>
+            Psixolog Paneli
+          </h2>
+          <p style={{ color: "#6B7280", fontSize: 13, marginTop: 4 }}>
+            Faqat psixologlar uchun
+          </p>
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: 12, color: "#6B7280", display: "block", marginBottom: 5 }}>
+            Email
+          </label>
+          <input
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="psixolog@mindaura.uz"
+            style={{
+              width: "100%", padding: "10px 14px", borderRadius: 10,
+              border: "1px solid #E5E7EB", fontSize: 13, outline: "none",
+              fontFamily: "inherit", boxSizing: "border-box"
+            }}
+          />
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ fontSize: 12, color: "#6B7280", display: "block", marginBottom: 5 }}>
+            Parol
+          </label>
+          <input
+            type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            placeholder="••••••••"
+            onKeyDown={e => e.key === "Enter" && handleLogin()}
+            style={{
+              width: "100%", padding: "10px 14px", borderRadius: 10,
+              border: "1px solid #E5E7EB", fontSize: 13, outline: "none",
+              fontFamily: "inherit", boxSizing: "border-box"
+            }}
+          />
+        </div>
+
+        {error && (
+          <div style={{
+            background: "#FEE2E2", color: "#DC2626", padding: "8px 12px",
+            borderRadius: 8, fontSize: 12, marginBottom: 14, textAlign: "center"
+          }}>
+            ⚠️ {error}
+          </div>
+        )}
+
+        <button
+          onClick={() => {
+            if (email === "psixolog@mindaura.uz" && password === "psixolog123") {
+              onSuccess();
+            } else {
+              alert("Email yoki parol noto'g'ri!");
+            }
+          }}
+          style={{
+            width: "100%", padding: "11px", borderRadius: 10,
+            background: "linear-gradient(135deg, #7C3AED, #9333EA)",
+            color: "#fff", border: "none", fontSize: 14, fontWeight: 600,
+            cursor: "pointer", fontFamily: "inherit"
+          }}
+        >
+          Kirish →
+        </button>
+
+        <button
+          onClick={onExit}
+          style={{
+            width: "100%", padding: "10px", borderRadius: 10,
+            background: "transparent", color: "#6B7280",
+            border: "1px solid #E5E7EB", fontSize: 13,
+            cursor: "pointer", fontFamily: "inherit"
+          }}
+        >
+          ← Orqaga
+        </button>
+      </div>
     </div>
   );
 }
