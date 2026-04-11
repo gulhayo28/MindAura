@@ -13,27 +13,8 @@ import AdminApp from "./AdminApp";
 import Library from "./Library";
 import Profile from './Profile';
 import PsychologistDashboard from './components/psychologist/PsychologistDashboard';
+import { login } from './api';
 
-function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-
-        {/* Psixolog paneli */}
-        <Route
-          path="/psychologist"
-          element={
-            <ProtectedRoute role="psychologist">
-              <PsychologistDashboard />
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-    </BrowserRouter>
-  );
-}
 function Navbar({ page, setPage, onLoginClick }) {
   const [open, setOpen] = useState(false);
   const { user, logoutUser } = useAuth();
@@ -73,38 +54,44 @@ function Navbar({ page, setPage, onLoginClick }) {
       <ul className={`nav-links ${open ? "open" : ""}`}>
         {links.map(l => (
           <li key={l.key}>
-            <a href="/"
+            <a
+              href="/"
               onClick={e => { e.preventDefault(); setPage(l.key); setOpen(false); }}
               className={page === l.key ? "active-link" : ""}
-            >{l.label}</a>
+            >
+              {l.label}
+            </a>
           </li>
         ))}
         <li>
           {user ? (
             <div className="nav-user">
-              <button 
-                className="nav-btn nav-btn-outline" 
+              <button
+                className="nav-btn nav-btn-outline"
                 onClick={() => setPage("profile")}
               >
                 👤 {user.username}
               </button>
-              <button className="nav-btn nav-btn-outline" onClick={handleLogout}>Chiqish</button>
+              <button className="nav-btn nav-btn-outline" onClick={handleLogout}>
+                Chiqish
+              </button>
             </div>
           ) : (
             <button className="nav-btn" onClick={onLoginClick}>Kirish</button>
           )}
         </li>
         <li>
-          <button className="nav-btn-admin"
+          <button
+            className="nav-btn-admin"
             onClick={() => { window.location.hash = "admin"; window.location.reload(); }}
-            title="Admin panel">⚙</button>
+            title="Admin panel"
+          >⚙</button>
         </li>
       </ul>
       <div className="burger" onClick={() => setOpen(!open)}>☰</div>
     </nav>
   );
 }
-
 
 function Hero({ setPage, onLoginClick }) {
   const { user } = useAuth();
@@ -163,9 +150,12 @@ function Services({ setPage }) {
       <p className="section-sub">O'zbekiston mentalitetiga moslashtirilgan professional yordam</p>
       <div className="services-grid">
         {items.map(s => (
-          <div className="service-card" key={s.title}
+          <div
+            className="service-card"
+            key={s.title}
             onClick={() => s.page && setPage(s.page)}
-            style={{ cursor: s.page ? "pointer" : "default" }}>
+            style={{ cursor: s.page ? "pointer" : "default" }}
+          >
             <span className="service-icon">{s.icon}</span>
             <h3>{s.title}</h3>
             <p>{s.desc}</p>
@@ -212,89 +202,41 @@ function Footer() {
   );
 }
 
-export default function AppWrapper() {
-  const [page, setPage] = useState("home");
-  const { user } = useAuth();
-  const [showLogin, setShowLogin] = useState(false);
-
-  // ── ADMIN PANEL ──
-  if (window.location.hash === "#admin" || page === "admin") {
-    return <AdminApp onExit={() => { window.location.hash = ""; setPage("home"); }} />;
-  }
-  // YANGI (to'g'ri):
-  if (window.location.hash === "#psychologist" || page === "psychologist") {
-    return (
-      <PsychologistLogin 
-        onSuccess={() => { 
-          window.location.hash = ""; 
-          setPage("psychologist-dashboard"); 
-        }} 
-        onExit={() => { 
-          window.location.hash = ""; 
-          setPage("home"); 
-        }} 
-      />
-    );
-  }
-
-  if (page === "psychologist-dashboard") {
-    return <PsychologistDashboard onExit={() => setPage("home")} />;
-  }
-
-    const handleLoginSuccess = () => {
-      setShowLogin(false);
-      setPage("home");
-    };
-
-  if (showLogin) {
-    return <Login onSuccess={handleLoginSuccess} onBack={() => setShowLogin(false)} />;
-  }
-
-  return (
-    <div className="app">
-      <Navbar page={page} setPage={setPage} onLoginClick={() => setShowLogin(true)} />
-      {page === "home" && <>
-        <Hero setPage={setPage} onLoginClick={() => setShowLogin(true)} />
-        <Services setPage={setPage} />
-        <Psychologists />
-        <Stats />
-        <Footer />
-      </>}
-      {page === "chatbot"       && <Chatbot />}
-      {page === "challenge"     && <Challenge />}
-      {page === "tests"         && <Tests />}
-      {page === "exercises"     && <Exercises />}
-      {page === "psychologists" && <><Psychologists /><Footer /></>}
-      {page === "trainings"     && <Trainings />}
-      {page === "library"       && <Library />}
-      {page === "profile" && <Profile user={user} />}
-      {page === "psychologist" && <PsychologistDashboard />}
-    </div>
-  );
-}
-
-
+// ─── PSIXOLOG LOGIN ────────────────────────────────────────────
 function PsychologistLogin({ onSuccess, onExit }) {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
 
-  const handleLogin = () => {
-    console.log("Kirish bosildi:", email, password); // ← tekshirish uchun
+  const handleLogin = async () => {
+    if (!email || !password) {
+      setError("Email va parolni kiriting!");
+      return;
+    }
 
-    const PSYCH_CREDENTIALS = [
-      { email: "psixolog@mindaura.uz", password: "psixolog123" },
-      { email: "admin@mindaura.uz", password: "admin123" },
-    ];
-
-    const found = PSYCH_CREDENTIALS.find(
-      c => c.email === email && c.password === password
-    );
-
-    if (found) {
+    // ✅ Test bypass
+    if (email === "psixolog@mindaura.uz" && password === "secret") {
       onSuccess();
-    } else {
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    try {
+      const res = await login({ email, password });
+      const { access_token, role } = res.data;
+      if (role !== "psychologist" && role !== "admin") {
+        setError("Sizda psixolog huquqi yo'q!");
+        setLoading(false);
+        return;
+      }
+      localStorage.setItem("access_token", access_token);
+      onSuccess();
+    } catch (err) {
       setError("Email yoki parol noto'g'ri!");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -316,6 +258,13 @@ function PsychologistLogin({ onSuccess, onExit }) {
           <p style={{ color: "#6B7280", fontSize: 13, marginTop: 4 }}>
             Faqat psixologlar uchun
           </p>
+          <p style={{
+            color: "#7C3AED", fontSize: 11, marginTop: 8,
+            background: "#EDE9FE", padding: "5px 12px",
+            borderRadius: 8, display: "inline-block"
+          }}>
+            Test: psixolog@mindaura.uz / secret
+          </p>
         </div>
 
         <div style={{ marginBottom: 14 }}>
@@ -326,6 +275,7 @@ function PsychologistLogin({ onSuccess, onExit }) {
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleLogin()}
             placeholder="psixolog@mindaura.uz"
             style={{
               width: "100%", padding: "10px 14px", borderRadius: 10,
@@ -343,8 +293,8 @@ function PsychologistLogin({ onSuccess, onExit }) {
             type="password"
             value={password}
             onChange={e => setPassword(e.target.value)}
-            placeholder="••••••••"
             onKeyDown={e => e.key === "Enter" && handleLogin()}
+            placeholder="••••••••"
             style={{
               width: "100%", padding: "10px 14px", borderRadius: 10,
               border: "1px solid #E5E7EB", fontSize: 13, outline: "none",
@@ -363,21 +313,17 @@ function PsychologistLogin({ onSuccess, onExit }) {
         )}
 
         <button
-          onClick={() => {
-            if (email === "psixolog@mindaura.uz" && password === "psixolog123") {
-              onSuccess();
-            } else {
-              alert("Email yoki parol noto'g'ri!");
-            }
-          }}
+          onClick={handleLogin}
+          disabled={loading}
           style={{
             width: "100%", padding: "11px", borderRadius: 10,
-            background: "linear-gradient(135deg, #7C3AED, #9333EA)",
+            background: loading ? "#9CA3AF" : "linear-gradient(135deg, #7C3AED, #9333EA)",
             color: "#fff", border: "none", fontSize: 14, fontWeight: 600,
-            cursor: "pointer", fontFamily: "inherit"
+            cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit",
+            marginBottom: 10
           }}
         >
-          Kirish →
+          {loading ? "Kirilmoqda..." : "Kirish →"}
         </button>
 
         <button
@@ -392,6 +338,80 @@ function PsychologistLogin({ onSuccess, onExit }) {
           ← Orqaga
         </button>
       </div>
+    </div>
+  );
+}
+
+// ─── APP WRAPPER ───────────────────────────────────────────────
+export default function AppWrapper() {
+  // ✅ "psychologist-dashboard" boshlang'ich qiymat bo'lishi mumkin emas,
+  //    lekin hash orqali kelganda to'g'ri ishlashi uchun
+  //    page state ni "psych-login" deb boshlaymiz hash bo'lsa
+  const [page, setPage] = useState(
+    window.location.hash === "#psychologist" ? "psych-login" : "home"
+  );
+  const { user } = useAuth();
+  const [showLogin, setShowLogin] = useState(false);
+
+  // ✅ TO'G'RI TARTIB: dashboard BIRINCHI tekshiriladi
+  if (page === "psychologist-dashboard") {
+    return <PsychologistDashboard onExit={() => setPage("home")} />;
+  }
+
+  // ── ADMIN PANEL ──
+  if (window.location.hash === "#admin" || page === "admin") {
+    return <AdminApp onExit={() => { window.location.hash = ""; setPage("home"); }} />;
+  }
+
+  // ── PSIXOLOG LOGIN ──
+  // hash YOKI page === "psych-login" bo'lsa ko'rsat
+  if (page === "psych-login" || page === "psychologist") {
+    return (
+      <PsychologistLogin
+        onSuccess={() => {
+          // ✅ Avval page ni o'zgartir, keyin hash ni tozala
+          setPage("psychologist-dashboard");
+          window.location.hash = "";
+        }}
+        onExit={() => {
+          setPage("home");
+          window.location.hash = "";
+        }}
+      />
+    );
+  }
+
+  const handleLoginSuccess = () => {
+    setShowLogin(false);
+    setPage("home");
+  };
+
+  if (showLogin) {
+    return <Login onSuccess={handleLoginSuccess} onBack={() => setShowLogin(false)} />;
+  }
+
+  return (
+    <div className="app">
+      <Navbar page={page} setPage={setPage} onLoginClick={() => setShowLogin(true)} />
+
+      {/* Psixolog paneli tugmasi navbar da ko'rinishi uchun */}
+      {page === "home" && (
+        <>
+          <Hero setPage={setPage} onLoginClick={() => setShowLogin(true)} />
+          <Services setPage={setPage} />
+          <Psychologists />
+          <Stats />
+          <Footer />
+        </>
+      )}
+      {page === "chatbot"       && <Chatbot />}
+      {page === "challenge"     && <Challenge />}
+      {page === "tests"         && <Tests />}
+      {page === "exercises"     && <Exercises />}
+      {page === "psychologists" && <><Psychologists /><Footer /></>}
+      {page === "trainings"     && <Trainings />}
+      {page === "library"       && <Library />}
+      {page === "profile"       && <Profile user={user} />}
     </div>
   );
 }
