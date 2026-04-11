@@ -347,9 +347,7 @@ export default function AppWrapper() {
   // ✅ "psychologist-dashboard" boshlang'ich qiymat bo'lishi mumkin emas,
   //    lekin hash orqali kelganda to'g'ri ishlashi uchun
   //    page state ni "psych-login" deb boshlaymiz hash bo'lsa
-  const [page, setPage] = useState(
-    window.location.hash === "#psychologist" ? "psych-login" : "home"
-  );
+  const [page, setPage] = useState("home");
   const { user } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
 
@@ -369,9 +367,7 @@ export default function AppWrapper() {
     return (
       <PsychologistLogin
         onSuccess={() => {
-          // ✅ Avval page ni o'zgartir, keyin hash ni tozala
           setPage("psychologist-dashboard");
-          window.location.hash = "";
         }}
         onExit={() => {
           setPage("home");
