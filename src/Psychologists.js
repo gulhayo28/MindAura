@@ -2,7 +2,8 @@ import { useState } from "react";
 import "./Psychologists.css";
 
 // Rasmlarni src/images/ papkasiga qo'ying
-import imgNargiza from "./images/nargiza.jpg";
+//import imgNargiza from "./images/nargiza.jpg";
+import imgnigora from './images/nigora.jpg'
 import imgAmira from "./images/amira.jpg";
 import imgLola from "./images/lola.jpg";
 import imgRano from "./images/rano.jpg";
