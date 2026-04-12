@@ -2,8 +2,7 @@ import { useState } from "react";
 import "./Psychologists.css";
 
 // Rasmlarni src/images/ papkasiga qo'ying
-//import imgNargiza from "./images/nargiza.jpg";
-import imgnigora from './images/nigora.jpg'
+import imgNargiza from "./images/nargiza.jpg";
 import imgAmira from "./images/amira.jpg";
 import imgLola from "./images/lola.jpg";
 import imgRano from "./images/rano.jpg";
@@ -14,7 +13,7 @@ const PSYCHOLOGISTS = [
   {
     id: 1,
     name: "Shomuradova Nigora",
-    img: imgnigora,
+    img: imgNargiza,
     title: "Psixolog | Munosabatlar mutaxassisi",
     exp: "10+ yil", rating: 4.9, reviews: 1240, subscribers: "338K",
     tags: ["Oila munosabatlari", "Stress", "O'z-o'zini rivojlantirish", "Ayollar psixologiyasi"],
