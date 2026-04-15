@@ -4,8 +4,7 @@ import RiskCard from '../components/dashboard/RiskCard'
 import MetricGrid from '../components/dashboard/MetricGrid'
 import RecentTests from '../components/dashboard/RecentTests'
 import PsychologistBlock from '../components/dashboard/PsychologistBlock'
-
-const API_BASE = process.env.REACT_APP_API_URL || 'https://mindaura-backend-4.onrender.com'
+import API from '../api'
 
 function Skeleton() {
   return (
@@ -28,16 +27,9 @@ export default function DashboardPage() {
   const [error, setError] = useState('')
 
   const fetchDashboard = () => {
-    const token = localStorage.getItem('access_token')
-    fetch(`${API_BASE}/api/user/dashboard`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`)
-        return r.json()
-      })
-      .then(d => { setData(d); setLoading(false) })
-      .catch(e => { setError(e.message); setLoading(false) })
+    API.get('/api/user/dashboard')
+      .then(res => { setData(res.data); setLoading(false) })
+      .catch(e => { setError(e.response?.data?.detail || e.message); setLoading(false) })
   }
 
   useEffect(() => {
